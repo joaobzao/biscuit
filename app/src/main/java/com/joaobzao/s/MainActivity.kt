@@ -5,14 +5,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.joaobzao.s.ui.theme.BirthdayQuizAppTheme
+import androidx.compose.ui.graphics.Color
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,7 +41,7 @@ fun JourneyQuizScreen() {
         "The first neck kiss,\n" +
                 "Sweaty and sweet, with a cereal treat.\n" +
                 "I have wheels and I'm always outside. \n" +
-        "What am I it's up to you to decide",
+                "What am I it's up to you to decide",
         "Chapter 3: What is my favorite food?"
     )
     val answers = listOf(
@@ -56,13 +59,14 @@ fun JourneyQuizScreen() {
     var feedback by remember { mutableStateOf("") }
     var showQuestion by remember { mutableStateOf(true) }
     var showHint by remember { mutableStateOf(false) }
+    var score by remember { mutableStateOf(0) }
+    var showFinalScreen by remember { mutableStateOf(false) }
 
     val onSubmitAnswer: () -> Unit = {
         if (userAnswer.text.equals(answers[currentQuestionIndex], ignoreCase = true)) {
             feedback = "Correct! On to the next 🎅🎁..."
-            currentQuestionIndex = (currentQuestionIndex + 1) % questions.size
-            userAnswer = TextFieldValue("") // Reset answer
-            showQuestion = true
+            score += 1
+            showQuestion = false
             showHint = false
         } else {
             feedback = "Oops! Kiss me to try again."
@@ -71,29 +75,55 @@ fun JourneyQuizScreen() {
         }
     }
 
-    AnimatedContent(
-        targetState = showQuestion,
-        transitionSpec = {
-            fadeIn(animationSpec = tween(500)) with fadeOut(animationSpec = tween(500))
-        }
-    ) { targetState ->
-        if (targetState) {
-            QuizQuestion(
-                question = questions[currentQuestionIndex],
-                userAnswer = userAnswer,
-                onAnswerChange = { userAnswer = it },
-                onSubmitAnswer = onSubmitAnswer
-            )
+    val onNextQuestion: () -> Unit = {
+        if (currentQuestionIndex + 1 < questions.size) {
+            currentQuestionIndex = (currentQuestionIndex + 1) % questions.size
+            userAnswer = TextFieldValue("") // Reset answer
+            feedback = ""
+            showQuestion = true
         } else {
-            QuizFeedback(
-                feedback = feedback,
-                showHint = showHint,
-                hint = hints[currentQuestionIndex],
-                onRetryQuestion = {
-                    userAnswer = TextFieldValue("") // Reset answer
-                    showQuestion = true
+            showFinalScreen = true
+        }
+    }
+
+    if (showFinalScreen) {
+        FinalScreen(score = score, totalQuestions = questions.size)
+    } else {
+        AnimatedContent(
+            targetState = showQuestion,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(500)) with fadeOut(animationSpec = tween(500))
+            }
+        ) { targetState ->
+            if (targetState) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    LinearProgressIndicator(
+                        progress = currentQuestionIndex / questions.size.toFloat(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                    )
+                    QuizQuestion(
+                        question = questions[currentQuestionIndex],
+                        userAnswer = userAnswer,
+                        onAnswerChange = { userAnswer = it },
+                        onSubmitAnswer = onSubmitAnswer
+                    )
                 }
-            )
+            } else {
+                QuizFeedback(
+                    feedback = feedback,
+                    showHint = showHint,
+                    hint = hints[currentQuestionIndex],
+                    onNextQuestion = if (feedback.startsWith("Correct")) onNextQuestion else onSubmitAnswer
+                )
+            }
         }
     }
 }
@@ -139,7 +169,7 @@ fun QuizFeedback(
     feedback: String,
     showHint: Boolean,
     hint: String,
-    onRetryQuestion: () -> Unit
+    onNextQuestion: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -161,10 +191,41 @@ fun QuizFeedback(
             )
         }
         Button(
-            onClick = onRetryQuestion,
+            onClick = onNextQuestion,
             modifier = Modifier.padding(bottom = 16.dp)
         ) {
-            Text("Retry")
+            Text(if (feedback.startsWith("Correct")) "Next" else "Retry")
         }
+    }
+}
+
+@Composable
+fun FinalScreen(score: Int, totalQuestions: Int) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "My biscuit 🍪!!",
+            style = MaterialTheme.typography.headlineLarge,
+            color = Color.Yellow,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        Text(
+            text = "Every mile's right n' light",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Image(
+            painter = painterResource(id = R.drawable.sjzxmas),
+            contentDescription = "Celebration",
+            modifier = Modifier
+                .size(200.dp)
+                .padding(16.dp)
+        )
     }
 }
