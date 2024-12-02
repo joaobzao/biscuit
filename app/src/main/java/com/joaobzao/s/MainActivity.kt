@@ -42,7 +42,10 @@ fun JourneyQuizScreen() {
                 "Sweaty and sweet, with a cereal treat.\n" +
                 "I have wheels and I'm always outside. \n" +
                 "What am I it's up to you to decide",
-        "Chapter 3: What is my favorite food?"
+        "A testament to effort, honest and true,\n" +
+                "A hidden gem, much like my Biscuit, you 🧡." +
+                "\n" +
+                "What am I?"
     )
     val answers = listOf(
         "ball",
@@ -103,8 +106,15 @@ fun JourneyQuizScreen() {
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    val progress = currentQuestionIndex / questions.size.toFloat()
+                    val cookieCount = (progress * 10).toInt() // Change this to adjust number of cookies displayed
+                    Text(
+                        text = "My biscuit ${"🍪".repeat(currentQuestionIndex + 1)}",
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
                     LinearProgressIndicator(
-                        progress = currentQuestionIndex / questions.size.toFloat(),
+                        progress = progress,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 16.dp)
@@ -117,11 +127,19 @@ fun JourneyQuizScreen() {
                     )
                 }
             } else {
+                val drawableId = listOf(R.drawable.xmas1, R.drawable.xmas2, R.drawable.xmas3)
+
                 QuizFeedback(
                     feedback = feedback,
                     showHint = showHint,
                     hint = hints[currentQuestionIndex],
-                    onNextQuestion = if (feedback.startsWith("Correct")) onNextQuestion else onSubmitAnswer
+                    drawableId = drawableId[currentQuestionIndex],
+                    onRetryQuestion = {
+                        userAnswer = TextFieldValue("") // Reset answer
+                        feedback = ""
+                        showQuestion = true
+                    },
+                    onNextQuestion = onNextQuestion
                 )
             }
         }
@@ -138,7 +156,8 @@ fun QuizQuestion(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .imePadding(), // To make sure the keyboard doesn't cover the content
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -155,12 +174,15 @@ fun QuizQuestion(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         )
+
         Button(
             onClick = onSubmitAnswer,
             modifier = Modifier.padding(bottom = 16.dp)
         ) {
             Text("Submit")
         }
+
+        Spacer(modifier = Modifier.weight(1f)) // Spacer to push the button to the bottom
     }
 }
 
@@ -169,12 +191,15 @@ fun QuizFeedback(
     feedback: String,
     showHint: Boolean,
     hint: String,
+    drawableId: Int,
+    onRetryQuestion: () -> Unit,
     onNextQuestion: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .imePadding(), // To make sure the keyboard doesn't cover the content
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -190,12 +215,32 @@ fun QuizFeedback(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
         }
+
+        if (feedback.startsWith("Correct")) {
+
+            Image(
+                painter = painterResource(id = drawableId),
+                contentDescription = "Celebration",
+                modifier = Modifier
+                    .size(500.dp)
+                    .padding(16.dp)
+            )
+        }
+
         Button(
-            onClick = onNextQuestion,
+            onClick = {
+                if (feedback.startsWith("Correct")) {
+                    onNextQuestion()
+                } else {
+                    onRetryQuestion()
+                }
+            },
             modifier = Modifier.padding(bottom = 16.dp)
         ) {
             Text(if (feedback.startsWith("Correct")) "Next" else "Retry")
         }
+
+        Spacer(modifier = Modifier.weight(1f)) // Spacer to push the button to the bottom
     }
 }
 
@@ -209,9 +254,9 @@ fun FinalScreen(score: Int, totalQuestions: Int) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "My biscuit 🍪!!",
+            text = "Adoro-te my biscuit 🍪!!",
             style = MaterialTheme.typography.headlineLarge,
-            color = Color.Yellow,
+            color = Color(0xFFFF6F00),
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Text(
@@ -224,7 +269,7 @@ fun FinalScreen(score: Int, totalQuestions: Int) {
             painter = painterResource(id = R.drawable.sjzxmas),
             contentDescription = "Celebration",
             modifier = Modifier
-                .size(200.dp)
+                .size(500.dp)
                 .padding(16.dp)
         )
     }
