@@ -1,5 +1,7 @@
 package com.joaobzao.s
 
+import android.hardware.Sensor
+import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,26 +18,57 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.joaobzao.s.ui.theme.BirthdayQuizAppTheme
 import androidx.compose.ui.graphics.Color
+import com.joaobzao.s.MainActivity.Companion.showImage
 
 class MainActivity : ComponentActivity() {
+    private lateinit var sensorManager: SensorManager
+    private lateinit var accelerometer: Sensor
+    private lateinit var shakeDetector: ShakeDetector
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)!!
+        shakeDetector = ShakeDetector { onShakeDetected() }
+
         setContent {
             BirthdayQuizAppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    JourneyQuizScreen()
+                    JourneyQuizScreen(showImage)
                 }
             }
         }
+    }
+
+    private fun onShakeDetected() {
+        // Handle shake detection
+        // You can use a MutableState to trigger a Composable update
+        showImage = true
+        println("Shake detected!")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        sensorManager.registerListener(shakeDetector, accelerometer, SensorManager.SENSOR_DELAY_UI)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager.unregisterListener(shakeDetector)
+    }
+
+    companion object {
+        // MutableState to control image visibility
+        var showImage by mutableStateOf(false)
     }
 }
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun JourneyQuizScreen() {
+fun JourneyQuizScreen(showImage: Boolean) {
     val questions = listOf(
         "In a court where love first hit the net, round and small, with spins we met. Bouncing back with every sway, What am I that led to this day?",
         "The first neck kiss,\n" +
@@ -45,17 +78,23 @@ fun JourneyQuizScreen() {
         "A testament to effort, honest and true,\n" +
                 "A hidden gem, much like my Biscuit, you 🧡." +
                 "\n" +
-                "What am I?"
+                "What am I?",
+        "I sparkle on the tree, a cozy sight,\n" +
+                "With windows aglow in the holiday night.\n" +
+                "A little thing with lights so bright,\n" +
+                "What am I you wanted so much at first sight?"
     )
     val answers = listOf(
         "ball",
         "car",
-        "true star"
+        "true star",
+        "you"
     )
     val hints = listOf(
         "You can find me in the word 'football'",
         "I was once scratched but now I'm painted like new.",
-        "JZ recognition, Biscuit 🍪 version"
+        "JZ recognition, Biscuit 🍪 version",
+        "How couldn't you immediately said 'you'? You owe me a massage!! (72h)"
     )
     var currentQuestionIndex by remember { mutableStateOf(0) }
     var userAnswer by remember { mutableStateOf(TextFieldValue("")) }
@@ -107,7 +146,7 @@ fun JourneyQuizScreen() {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     val progress = currentQuestionIndex / questions.size.toFloat()
-                    val cookieCount = (progress * 10).toInt() // Change this to adjust number of cookies displayed
+
                     Text(
                         text = "My biscuit ${"🍪".repeat(currentQuestionIndex + 1)}",
                         style = MaterialTheme.typography.headlineMedium,
@@ -127,7 +166,7 @@ fun JourneyQuizScreen() {
                     )
                 }
             } else {
-                val drawableId = listOf(R.drawable.xmas1, R.drawable.xmas2, R.drawable.xmas3)
+                val drawableId = listOf(R.drawable.xmas1, R.drawable.xmas2, R.drawable.xmas3, R.drawable.me)
 
                 QuizFeedback(
                     feedback = feedback,
@@ -218,13 +257,31 @@ fun QuizFeedback(
 
         if (feedback.startsWith("Correct")) {
 
-            Image(
-                painter = painterResource(id = drawableId),
-                contentDescription = "Celebration",
-                modifier = Modifier
-                    .size(500.dp)
-                    .padding(16.dp)
-            )
+            if (showImage.and(drawableId == R.drawable.me)) {
+                Image(
+                    painter = painterResource(id = R.drawable.xmas4),
+                    contentDescription = "Celebration",
+                    modifier = Modifier
+                        .size(500.dp)
+                        .padding(16.dp)
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = drawableId),
+                    contentDescription = "Celebration",
+                    modifier = Modifier
+                        .size(500.dp)
+                        .padding(16.dp)
+                )
+
+                if(drawableId == R.drawable.me) {
+                    Text(
+                        text = "Shake the phone for a 🎁",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+            }
         }
 
         Button(
@@ -254,7 +311,7 @@ fun FinalScreen(score: Int, totalQuestions: Int) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Adoro-te my biscuit 🍪!!",
+            text = "Ly my biscuit 🍪!!",
             style = MaterialTheme.typography.headlineLarge,
             color = Color(0xFFFF6F00),
             modifier = Modifier.padding(bottom = 16.dp)
